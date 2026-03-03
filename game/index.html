@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Rogue足球</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;700;900&family=Noto+Sans+SC:wght@400;700;900&display=swap');
+:root {
+  --bg:#0f1923; --surface:#1a2535; --surface2:#243044;
+  --text:#e2e8f0; --text2:#94a3b8;
+  --primary:#00d4ff; --danger:#ff3b5c;
+  --gold:#ffc433; --green:#22c55e; --epic:#a855f7;
+  --star:#fbbf24;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+.hidden{display:none!important;}
+body{font-family:'Noto Sans SC',sans-serif;background:var(--bg);color:var(--text);margin:0;padding:0;overflow-x:hidden;min-height:100vh;}
+
+/* ── Intro ── */
+#screen-intro{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:24px;text-align:center;}
+.intro-logo{font-family:'Oswald',sans-serif;font-size:64px;font-weight:900;color:var(--primary);text-shadow:0 0 40px rgba(0,212,255,0.5);line-height:1;margin-bottom:4px;}
+.intro-sub{font-family:'Oswald',sans-serif;font-size:20px;color:var(--gold);letter-spacing:4px;margin-bottom:32px;}
+.intro-desc{max-width:440px;font-size:14px;color:var(--text2);line-height:1.8;background:var(--surface);padding:20px;border-radius:12px;border-left:4px solid var(--primary);margin-bottom:28px;text-align:left;}
+
+/* ── Challenge map ── */
+#screen-map{min-height:100vh;display:flex;flex-direction:column;padding:16px;max-width:500px;margin:0 auto;}
+.map-header{text-align:center;margin-bottom:20px;}
+.map-title{font-family:'Oswald',sans-serif;font-size:26px;color:var(--gold);letter-spacing:2px;}
+.map-sub{font-size:12px;color:var(--text2);margin-top:4px;}
+
+.team-card{background:var(--surface);border-radius:14px;border:2px solid transparent;margin-bottom:12px;padding:16px 18px;display:flex;align-items:center;gap:14px;transition:all 0.2s;position:relative;overflow:hidden;}
+.team-card.unlocked{border-color:rgba(0,212,255,0.35);cursor:pointer;}
+.team-card.unlocked:active{transform:scale(0.98);}
+.team-card.locked{border-color:rgba(255,255,255,0.06);opacity:0.5;}
+.team-card.completed{border-color:rgba(34,197,94,0.4);}
+.team-card.current{border-color:var(--primary);box-shadow:0 0 16px rgba(0,212,255,0.25);}
+
+.team-num{font-family:'Oswald',sans-serif;font-size:28px;font-weight:900;color:var(--text2);width:36px;text-align:center;flex-shrink:0;}
+.team-card.current .team-num{color:var(--primary);}
+.team-card.completed .team-num{color:var(--green);}
+
+.team-info{flex:1;}
+.team-name{font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.team-tier{font-size:11px;color:var(--text2);letter-spacing:1px;}
+.team-stars{font-size:20px;letter-spacing:2px;margin-top:4px;}
+
+.lock-icon{font-size:22px;color:rgba(255,255,255,0.2);}
+
+.card-glow{position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(0,212,255,0.04));pointer-events:none;}
+.team-card.completed .card-glow{background:linear-gradient(90deg,transparent,rgba(34,197,94,0.04));}
+
+/* ── Pre-match screen ── */
+#screen-prematch{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;max-width:500px;margin:0 auto;}
+.prematch-badge{font-size:48px;margin-bottom:8px;}
+.prematch-name{font-family:'Oswald',sans-serif;font-size:30px;font-weight:900;color:var(--primary);margin-bottom:4px;}
+.prematch-tier{font-size:12px;color:var(--text2);letter-spacing:2px;margin-bottom:16px;}
+.prematch-desc{font-size:13px;color:var(--text2);line-height:1.7;background:var(--surface);border-radius:10px;padding:14px 16px;border-left:3px solid var(--primary);margin-bottom:20px;width:100%;}
+.prematch-stars{font-size:14px;color:var(--text2);margin-bottom:20px;}
+.prematch-stars b{color:var(--star);}
+
+/* ── Buttons ── */
+.btn{padding:15px 24px;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:0.15s;font-family:'Noto Sans SC',sans-serif;width:100%;max-width:340px;display:block;margin:0 auto 10px;}
+.btn-primary{background:var(--primary);color:#000;}
+.btn-primary:active{background:#00b8e0;}
+.btn-dark{background:var(--surface2);color:var(--text);border:1px solid rgba(255,255,255,0.08);}
+.btn-dark:active{background:#2d3a50;}
+.btn-gold{background:var(--gold);color:#000;}
+
+/* ── Arena ── */
+#modal-match-arena{position:fixed;inset:0;z-index:2000;background:#0a1628;display:flex;flex-direction:column;overflow:hidden;}
+
+#arena-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(0,0,0,0.5);border-bottom:1px solid rgba(255,255,255,0.08);}
+.arena-team-name{font-size:12px;color:#94a3b8;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#arena-score-center{display:flex;flex-direction:column;align-items:center;}
+#arena-duel-label{font-size:10px;color:#64748b;letter-spacing:1px;}
+#arena-duel-count{font-size:30px;font-weight:900;color:#4ade80;font-family:'Oswald',sans-serif;line-height:1;}
+
+#arena-pitch{position:relative;flex:1;background:linear-gradient(180deg,#1a472a 0%,#2d5a27 16.66%,#1a472a 33.33%,#2d5a27 50%,#1a472a 66.66%,#2d5a27 83.33%,#1a472a 100%);overflow:hidden;min-height:0;}
+#arena-pitch .pitch-lines{position:absolute;inset:0;pointer-events:none;}
+#arena-opp-player{position:absolute;top:15%;left:50%;transform:translateX(-50%);transition:left 0.15s ease;text-align:center;z-index:10;}
+#arena-opp-name{font-size:9px;color:#fca5a5;margin-top:2px;white-space:nowrap;}
+#arena-ball{position:absolute;font-size:18px;z-index:15;transition:all 0.3s ease;display:none;}
+#arena-my-player{position:absolute;bottom:22%;left:50%;transform:translateX(-50%);text-align:center;z-index:10;}
+#arena-my-pos{font-size:9px;color:#93c5fd;margin-top:2px;}
+
+#arena-zones{position:absolute;bottom:18%;left:0;right:0;display:none;justify-content:space-around;padding:0 3%;gap:10px;z-index:20;}
+#arena-zones button{border-radius:16px;padding:0;font-size:22px;font-weight:700;cursor:pointer;transition:all 0.15s;flex:1;min-height:128px;border-width:3px;border-style:dashed;}
+
+#arena-phase-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;font-weight:900;letter-spacing:3px;color:#fff;text-shadow:0 0 20px rgba(0,0,0,0.8);opacity:0;pointer-events:none;z-index:30;}
+#arena-goal-flash{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;z-index:40;}
+#arena-goal-text{font-size:48px;font-weight:900;text-shadow:0 0 30px currentColor;}
+
+#arena-bottom{padding:10px 16px 14px;background:rgba(0,0,0,0.6);border-top:1px solid rgba(255,255,255,0.08);min-height:90px;}
+#arena-situation{font-size:13px;color:#e2e8f0;margin-bottom:6px;min-height:32px;line-height:1.5;text-align:center;}
+#arena-round-info{font-size:11px;color:#64748b;text-align:center;margin-bottom:4px;}
+
+/* ── Result modal ── */
+#modal-result{position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;padding:20px;}
+#result-box{background:var(--surface);border-radius:16px;width:100%;max-width:400px;padding:28px;text-align:center;}
+.result-grade{font-family:'Oswald',sans-serif;font-size:36px;font-weight:900;margin-bottom:4px;}
+.result-stars{font-size:36px;letter-spacing:4px;margin-bottom:12px;}
+.result-detail{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.7;}
+
+/* Scrimmage info */
+#scrim-indicator{background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);border-radius:8px;padding:8px 14px;text-align:center;font-size:12px;color:#c4b5fd;margin-bottom:12px;}
+</style>
+</head>
+<body>
+<div id="app-wrapper">
+
+<!-- ══ INTRO ══ -->
+<div id="screen-intro">
+  <div class="intro-logo">ROGUE足球</div>
+  <div class="intro-sub">对抗 · 突破 · 闯关</div>
+  <div class="intro-desc">
+    每场比赛都是真实的攻守博弈。<br><br>
+    <b style="color:var(--primary)">防守回合</b>：盯住对方球员，停下的瞬间选对方向拦截。<br>
+    <b style="color:var(--gold)">进攻回合</b>：读懂对手动作，在倒计时结束前选择突破路线。<br><br>
+    <b>🌟🌟🌟 大胜</b> 才能解锁下一关。加油！
+  </div>
+  <button class="btn btn-primary" onclick="showMap()">⚽ 开始闯关</button>
+</div>
+
+<!-- ══ CHALLENGE MAP ══ -->
+<div id="screen-map" class="hidden">
+  <div class="map-header">
+    <div class="map-title">⚽ 第一阶段</div>
+    <div class="map-sub" id="map-sub">新手磨合期 · 连赢6关晋级</div>
+  </div>
+  <div id="map-scrim-indicator" class="hidden" style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);border-radius:8px;padding:8px 14px;text-align:center;font-size:12px;color:#c4b5fd;margin-bottom:12px;">
+    ⚔️ 上场前先打队内对抗赛
+  </div>
+  <div id="team-cards"></div>
+</div>
+
+<!-- ══ PRE-MATCH ══ -->
+<div id="screen-prematch" class="hidden">
+  <div class="prematch-badge" id="pm-badge">⚽</div>
+  <div class="prematch-name" id="pm-name">-</div>
+  <div class="prematch-tier" id="pm-tier">-</div>
+  <div class="prematch-desc" id="pm-desc">-</div>
+  <div class="prematch-stars" id="pm-stars"></div>
+  <div id="scrim-indicator" class="hidden">⚔️ 先打队内对抗赛，再上联赛</div>
+  <button class="btn btn-primary" id="pm-start-btn" onclick="startMatch()">上场！</button>
+  <button class="btn btn-dark" onclick="backToMap()">← 返回</button>
+</div>
+
+<!-- ══ ARENA ══ -->
+<div id="modal-match-arena" class="hidden">
+  <div id="arena-header">
+    <div class="arena-team-name" id="arena-team-home">你</div>
+    <div id="arena-score-center" style="display:flex;flex-direction:column;align-items:center;">
+      <div style="display:flex;align-items:center;gap:8px;line-height:1;">
+        <div id="score-my" style="font-size:34px;font-weight:900;color:#4ade80;font-family:'Oswald',sans-serif;">0</div>
+        <div style="font-size:20px;color:#475569;font-weight:900;">:</div>
+        <div id="score-opp" style="font-size:34px;font-weight:900;color:#f87171;font-family:'Oswald',sans-serif;">0</div>
+      </div>
+      <div style="font-size:9px;color:#475569;letter-spacing:1px;margin-top:1px;">我 &nbsp; 对手</div>
+    </div>
+    <div class="arena-team-name" id="arena-team-away" style="text-align:right;">对手</div>
+  </div>
+
+  <div id="arena-pitch">
+    <div class="pitch-lines">
+      <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(255,255,255,0.2);"></div>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80px;height:80px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);"></div>
+      <div style="position:absolute;top:2%;left:50%;transform:translateX(-50%);width:55%;height:18%;border:1px solid rgba(255,255,255,0.15);"></div>
+      <div style="position:absolute;bottom:2%;left:50%;transform:translateX(-50%);width:55%;height:18%;border:1px solid rgba(255,255,255,0.15);"></div>
+      <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:28%;height:3%;border:2px solid rgba(255,255,255,0.4);border-top:none;"></div>
+      <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:28%;height:3%;border:2px solid rgba(255,255,255,0.4);border-bottom:none;"></div>
+    </div>
+
+    <div id="arena-opp-player">
+      <div style="font-size:44px;line-height:1;">🔴</div>
+      <div id="arena-opp-name" style="font-size:11px;color:#fca5a5;margin-top:3px;white-space:nowrap;">对方球员</div>
+    </div>
+    <div id="arena-ball" style="position:absolute;font-size:28px;z-index:15;transition:all 0.2s ease;display:none;">⚽</div>
+    <div id="arena-my-player">
+      <div id="arena-my-ball" style="font-size:24px;margin-bottom:-8px;display:none;">⚽</div>
+      <div style="font-size:44px;line-height:1;">🔵</div>
+      <div id="arena-my-pos" style="font-size:11px;color:#93c5fd;margin-top:3px;">你</div>
+    </div>
+
+    <div id="arena-zones">
+      <button id="zone-left"  onclick="playerIntercept('left')" >左路</button>
+      <button id="zone-center" onclick="playerIntercept('center')">中路</button>
+      <button id="zone-right" onclick="playerIntercept('right')" >右路</button>
+    </div>
+
+    <div id="arena-phase-label"></div>
+    <div id="arena-goal-flash"><div id="arena-goal-text"></div></div>
+  </div>
+
+  <div id="arena-bottom">
+    <div id="arena-phase-banner" style="font-family:'Oswald',sans-serif;font-size:30px;font-weight:900;letter-spacing:4px;text-align:center;height:36px;margin-bottom:4px;"></div>
+    <div id="arena-situation"></div>
+    <div id="arena-round-info"></div>
+  </div>
+</div>
+
+<!-- ══ RESULT ══ -->
+<div id="modal-result" class="hidden">
+  <div id="result-box">
+    <div class="result-grade" id="res-grade"></div>
+    <div class="result-stars" id="res-stars"></div>
+    <div class="result-detail" id="res-detail"></div>
+    <button class="btn btn-primary" id="res-continue-btn">继续</button>
+    <button class="btn btn-dark" onclick="backToMap()">← 返回地图</button>
+  </div>
+</div>
+
+</div><!-- app-wrapper -->
+
+<script>
+// =============================================================================
+// DATA — Phase 1: 6 teams, gradual difficulty
+// baseOvr相对于玩家初始全属性5×5=25来衡量
+// =============================================================================
+const PHASE1_TEAMS = [
+  {
+    id:1, name:'邻里踢球队', badge:'👟', tier:'新手级',
+    baseOvr:18,  // 很弱，让玩家先赢
+    desc:'附近社区的大叔们，周末才来踢踢球，体能很差，动作迟钝。是你踏上征程的第一步。',
+    weak:'sta', threat:null,
+    stars:0, unlocked:true,
+  },
+  {
+    id:2, name:'校园足球社', badge:'🎒', tier:'业余级',
+    baseOvr:22,
+    desc:'大学里的足球社团，有些基本功，但缺乏对抗经验，进攻套路单一容易读穿。',
+    weak:'str', threat:null,
+    stars:0, unlocked:false,
+  },
+  {
+    id:3, name:'柴田町青年军', badge:'⚡', tier:'业余级+',
+    baseOvr:27,
+    desc:'街区联赛常客，跑动积极，反应比前两队快了不少，防守开始有组织。',
+    weak:'awa', threat:'spd',
+    stars:0, unlocked:false,
+  },
+  {
+    id:4, name:'新星体校队', badge:'🏫', tier:'半职业级',
+    baseOvr:33,
+    desc:'经过系统训练的体校学生，身体素质好，对抗能力强，反应速度明显提升。',
+    weak:'bal', threat:'str',
+    stars:0, unlocked:false,
+  },
+  {
+    id:5, name:'武藏 FC 预备队', badge:'🔥', tier:'半职业级+',
+    baseOvr:40,
+    desc:'职业俱乐部的预备队，战术纪律严明，防守站位准确，突破难度大幅提升。',
+    weak:'spd', threat:'awa',
+    stars:0, unlocked:false,
+  },
+  {
+    id:6, name:'飞越 FC 青年队', badge:'🏆', tier:'准职业级',
+    baseOvr:48,
+    desc:'第一阶段的终极考验。组织严密、速度极快，打败他们才能进入下一阶段！',
+    weak:null, threat:'spd',
+    stars:0, unlocked:false,
+  },
+];
+
+// =============================================================================
+// STATE
+// =============================================================================
+function getDefaultGame() {
+  return {
+    phase1Teams: PHASE1_TEAMS.map(t=>({...t})), // deep copy with stars/unlocked
+    currentTeamId: null,
+    isScrimFirst: false,   // scrimmage before each league match
+    scrimmageResult: null, // 'S'/'A'/'C'
+  };
+}
+
+let GAME = getDefaultGame();
+
+function saveGame() { try{ localStorage.setItem('rf_v15', JSON.stringify(GAME)); }catch(e){} }
+function loadSave() {
+  try{
+    let s = localStorage.getItem('rf_v15');
+    if(s) {
+      let p = JSON.parse(s);
+      GAME = Object.assign(getDefaultGame(), p);
+      // Ensure team objects are valid
+      if(!GAME.phase1Teams || GAME.phase1Teams.length !== 6) GAME.phase1Teams = PHASE1_TEAMS.map(t=>({...t}));
+    }
+  }catch(e){ GAME = getDefaultGame(); }
+}
+function clearGame() { localStorage.removeItem('rf_v15'); location.reload(); }
+
+function getRandom(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+function getRandInt(min,max) { return Math.floor(Math.random()*(max-min+1))+min; }
+
+// =============================================================================
+// SCREENS
+// =============================================================================
+function showMap() {
+  document.getElementById('screen-intro').classList.add('hidden');
+  document.getElementById('screen-map').classList.remove('hidden');
+  renderMap();
+}
+
+function renderMap() {
+  let teams = GAME.phase1Teams;
+  let html = '';
+  teams.forEach((t, i) => {
+    let starsHtml = '';
+    for(let s=0;s<3;s++) starsHtml += s < t.stars ? '⭐' : '☆';
+
+    let statusClass = '';
+    let rightContent = '';
+    let isCurrentTarget = false;
+
+    if(t.stars >= 3) {
+      // completed with 3 stars
+      statusClass = 'completed';
+      rightContent = `<div class="team-stars">${starsHtml}</div>`;
+    } else if(t.unlocked) {
+      // current challenge
+      statusClass = i > 0 && teams[i-1].stars >= 3 ? 'current' : (i===0 ? 'current' : 'unlocked');
+      rightContent = `<div class="team-stars">${starsHtml}</div>`;
+      isCurrentTarget = true;
+    } else {
+      statusClass = 'locked';
+      rightContent = `<div class="lock-icon">🔒</div>`;
+    }
+
+    let onclick = t.unlocked ? `onclick="openPrematch(${t.id})"` : '';
+    html += `
+      <div class="team-card ${statusClass}" ${onclick}>
+        <div class="card-glow"></div>
+        <div class="team-num">${i+1}</div>
+        <div class="team-info">
+          <div class="team-name">${t.badge} ${t.name}</div>
+          <div class="team-tier">${t.tier}</div>
+        </div>
+        ${rightContent}
+      </div>`;
+  });
+  document.getElementById('team-cards').innerHTML = html;
+
+  // Show scrim indicator if applicable
+  let allDone = teams.every(t=>t.stars>=3);
+  document.getElementById('map-sub').innerText = allDone ? '🎉 第一阶段完成！' : '3星大胜才能解锁下一关';
+}
+
+function openPrematch(teamId) {
+  let t = GAME.phase1Teams.find(x=>x.id===teamId);
+  if(!t || !t.unlocked) return;
+  GAME.currentTeamId = teamId;
+  GAME.scrimmageResult = null;
+
+  document.getElementById('pm-badge').innerText = t.badge;
+  document.getElementById('pm-name').innerText = t.name;
+  document.getElementById('pm-tier').innerText = t.tier;
+  document.getElementById('pm-desc').innerText = t.desc;
+
+  // Stars info
+  let starsHtml = '';
+  for(let s=0;s<3;s++) starsHtml += s < t.stars ? '⭐' : '☆';
+  let starsDesc = t.stars === 0 ? '首次挑战' : `当前最佳：${starsHtml}`;
+  let req = '3星（大胜）解锁下一关';
+  document.getElementById('pm-stars').innerHTML = `${starsDesc}<br><b style="color:var(--star)">★ ${req}</b>`;
+
+  // Whether scrimmage comes first
+  // Every match: first a 3-round internal scrimmage, then the league match
+  GAME.isScrimFirst = true;
+  document.getElementById('pm-start-btn').innerText = '⚔️ 先打对抗赛';
+
+  document.getElementById('screen-map').classList.add('hidden');
+  document.getElementById('screen-prematch').classList.remove('hidden');
+}
+
+function backToMap() {
+  document.getElementById('screen-prematch').classList.add('hidden');
+  document.getElementById('modal-result').classList.add('hidden');
+  document.getElementById('screen-map').classList.remove('hidden');
+  renderMap();
+}
+
+function startMatch() {
+  document.getElementById('screen-prematch').classList.add('hidden');
+  if(GAME.isScrimFirst && GAME.scrimmageResult === null) {
+    startScrimArena();
+  } else {
+    startLeagueArena();
+  }
+}
+
+// =============================================================================
+// ARENA ENGINE
+// =============================================================================
+let _match = {};
+
+function _arenaStart(opts) {
+  _match = {
+    isScrimmage: opts.isScrimmage,
+    oppOvr: opts.oppOvr,
+    opp: opts.opp,
+    successes:0, failures:0, totalDuels:0,
+    totalRounds: opts.totalRounds,
+    qteBonus: 1.0,
+  };
+  document.getElementById('score-my').innerText='0';
+  document.getElementById('score-opp').innerText='0';
+  document.getElementById('arena-phase-banner').innerText='';
+  _match.scoreMe=0; _match.scoreOpp=0;
+  document.getElementById('arena-team-home').innerText = '你';
+  document.getElementById('arena-team-away').innerText = opts.opp.name;
+  document.getElementById('arena-my-pos').innerText = '你';
+  document.getElementById('modal-match-arena').classList.remove('hidden');
+  document.getElementById('arena-zones').style.display = 'none';
+  setTimeout(()=>startRound(1), 500);
+}
+
+// Scrimmage: 3 rounds vs internal rival
+function startScrimArena() {
+  let t = GAME.phase1Teams.find(x=>x.id===GAME.currentTeamId);
+  let scrimOvr = t.baseOvr * 0.75 + getRandInt(-3,3); // weaker internal opponent
+  _arenaStart({ isScrimmage:true, oppOvr:scrimOvr, totalRounds:3,
+    opp:{ name:'队内主力', weak:null } });
+}
+
+// League match
+function startLeagueArena() {
+  let t = GAME.phase1Teams.find(x=>x.id===GAME.currentTeamId);
+  let oppOvr = t.baseOvr + getRandInt(-2,2);
+  // Scrimmage buff/debuff
+  if(GAME.scrimmageResult === 'S') oppOvr *= 0.92;
+  else if(GAME.scrimmageResult === 'C') oppOvr *= 1.10;
+  _arenaStart({ isScrimmage:false, oppOvr, totalRounds:6, opp:t });
+}
+
+// ── Round ──
+function startRound(n) {
+  _match.currentRound = n;
+  // Defense: odd rounds. If losing, force attack.
+  let isDefense = (_match.successes < _match.failures) ? false : (n % 2 === 1);
+  _match.isDefense = isDefense;
+  let label = isDefense ? '🛡️ 防守' : '⚔️ 进攻';
+  let color  = isDefense ? '#60a5fa' : '#f87171';
+  document.getElementById('arena-round-info').innerText =
+    `第${n}/${_match.totalRounds}回合 | ${label} | 成功 ${_match.successes} 失败 ${_match.failures}`;
+  showPhaseLabel(label, color, ()=>{ isDefense ? startDefenseRound() : startAttackRound(); });
+}
+
+function showPhaseLabel(text, color, cb) {
+  // Update persistent phase banner at bottom
+  let banner=document.getElementById('arena-phase-banner');
+  banner.style.color=color; banner.innerText=text;
+  let el = document.getElementById('arena-phase-label');
+  el.style.transition='none'; el.innerText=text; el.style.color=color;
+  el.style.opacity='1'; el.style.transform='translate(-50%,-50%) scale(1.1)';
+  setTimeout(()=>{
+    el.style.transition='opacity 0.35s,transform 0.35s';
+    el.style.opacity='0'; el.style.transform='translate(-50%,-50%) scale(0.85)';
+    setTimeout(()=>{ el.style.transition=''; if(cb)cb(); }, 370);
+  }, 750);
+}
+
+// ── Defense ──
+function startDefenseRound() {
+  let oppSpd = Math.min(50, _match.oppOvr/4+4);
+  let interval = Math.max(220, 520-oppSpd*6);
+  let zones = ['left','center','right'];
+  let finalZone = getRandom(zones);
+  _match._defFinalZone = finalZone;
+  document.getElementById('arena-situation').innerHTML =
+    '<span style="color:#fca5a5;">⚠️ 对方持球突破！跟住他，停下时选择拦截！</span>';
+  document.getElementById('arena-zones').style.display = 'none';
+  let oppEl = document.getElementById('arena-opp-player');
+  oppEl.style.top='15%'; oppEl.style.left='50%';
+  document.getElementById('arena-my-ball').style.display='none';
+  document.getElementById('arena-opp-name').innerText='对方球员';
+  let bounces=[];
+  for(let i=0;i<3+Math.floor(Math.random()*4);i++) bounces.push(getRandom(zones));
+  bounces.push(finalZone);
+  _match._defBounces=bounces; _match._defIdx=0; _match._defInterval=interval;
+  _match._reactWindow=Math.min(950,580+getRandInt(0,100));
+  runDefenseBounce();
+}
+
+function runDefenseBounce() {
+  let bounces=_match._defBounces, idx=_match._defIdx;
+  if(idx>=bounces.length){ showInterceptZones(); return; }
+  let zone=bounces[idx];
+  let posMap={left:'18%',center:'50%',right:'82%'};
+  let oppEl=document.getElementById('arena-opp-player');
+  oppEl.style.transition='left '+(_match._defInterval*0.75)+'ms ease';
+  oppEl.style.left=posMap[zone];
+  let ballEl=document.getElementById('arena-ball');
+  ballEl.style.display='block'; ballEl.style.left=posMap[zone]; ballEl.style.top='18%';
+  ballEl.style.transition='all '+(_match._defInterval*0.75)+'ms ease';
+  _match._defIdx++;
+  setTimeout(runDefenseBounce, _match._defInterval);
+}
+
+function showInterceptZones() {
+  setZoneStyle('defense', null);
+  document.getElementById('arena-zones').style.display='flex';
+  document.getElementById('arena-situation').innerHTML=
+    '<span style="color:#4ade80;font-weight:700;font-size:14px;">⚡ 停下了！选择拦截方向！</span>';
+  _match._interceptDeadline=setTimeout(()=>{
+    document.getElementById('arena-zones').style.display='none';
+    defenseResult(false,'⏱️ 反应太慢，被突破！');
+  }, _match._reactWindow);
+}
+
+function playerIntercept(zone) {
+  clearTimeout(_match._interceptDeadline);
+  document.getElementById('arena-zones').style.display='none';
+  let success=zone===_match._defFinalZone;
+  if(success){
+    let myEl=document.getElementById('arena-my-player');
+    myEl.style.transition='left 0.2s,bottom 0.2s';
+    myEl.style.left={left:'18%',center:'50%',right:'82%'}[zone];
+    myEl.style.bottom='35%';
+  }
+  defenseResult(success, success?'✅ 成功拦截！':'❌ 判断失误，被突破！');
+}
+
+function defenseResult(success, msg) {
+  _match.totalDuels++;
+  let myEl=document.getElementById('arena-my-player');
+  let oppEl=document.getElementById('arena-opp-player');
+  if(success){
+    _match.successes++; _match.qteBonus+=0.12;
+    _match.scoreMe++; document.getElementById('score-my').innerText=_match.scoreMe;
+    // Collision: opp was already at finalZone, player moved there — they meet
+    // Player is already positioned at intercept zone from playerIntercept()
+    // Animate opp bouncing away
+    playCollision();
+    setTimeout(()=>{
+      // Opp bounces back/up after collision
+      oppEl.style.transition='left 0.25s,top 0.25s';
+      oppEl.style.top='8%'; // knocked back toward top
+    }, 100);
+  } else {
+    _match.failures++; _match.qteBonus-=0.08; flashGoal(false);
+    _match.scoreOpp++; document.getElementById('score-opp').innerText=_match.scoreOpp;
+  }
+  document.getElementById('arena-ball').style.display='none';
+  document.getElementById('arena-situation').innerHTML=msg;
+  setTimeout(()=>{
+    oppEl.style.transition='left 0.3s,top 0.3s'; oppEl.style.left='50%'; oppEl.style.top='15%';
+    myEl.style.transition='left 0.3s,bottom 0.3s'; myEl.style.left='50%'; myEl.style.bottom='22%';
+    nextRoundOrEnd(_match.currentRound);
+  }, success?1200:1600);
+}
+
+// ── Attack ──
+function startAttackRound() {
+  let zones=['left','center','right'];
+  let defZone=getRandom(zones);
+  _match._oppDefZone=defZone;
+  let posMap={left:'18%',center:'50%',right:'82%'};
+  let oppEl=document.getElementById('arena-opp-player');
+  oppEl.style.top='32%'; oppEl.style.left='50%'; oppEl.style.transition='none';
+  document.getElementById('arena-opp-name').innerText='对方后卫';
+  document.getElementById('arena-ball').style.display='none';
+  let myEl=document.getElementById('arena-my-player');
+  myEl.style.bottom='30%'; myEl.style.left='50%'; myEl.style.transition='bottom 0.4s,left 0.4s';
+  let fakes=2+Math.floor(Math.random()*2);
+  let fakeSeq=[];
+  for(let i=0;i<fakes;i++) fakeSeq.push(getRandom(zones.filter(z=>z!==defZone)));
+  fakeSeq.push(defZone);
+  let fi=0, fakeInterval=Math.max(230,440-(_match.oppOvr/5)*4);
+  function runFake(){
+    if(fi>=fakeSeq.length){ showAttackOptions(defZone); return; }
+    oppEl.style.transition='left '+(fakeInterval*0.7)+'ms ease';
+    oppEl.style.left=posMap[fakeSeq[fi]]; fi++;
+    setTimeout(runFake, fakeInterval);
+  }
+  setTimeout(runFake,300);
+  // Show ball attached to player during attack
+  document.getElementById('arena-ball').style.display='none';
+  document.getElementById('arena-my-ball').style.display='block';
+  document.getElementById('arena-situation').innerHTML='<span style="color:#fbbf24;">⚔️ 你持球推进，后卫移动封堵……</span>';
+  document.getElementById('arena-zones').style.display='none';
+}
+
+function showAttackOptions(defZone) {
+  setZoneStyle('attack', defZone);
+  document.getElementById('arena-zones').style.display='flex';
+
+  let reactWindow=Math.min(1100,720+getRandInt(0,80));
+  document.getElementById('arena-situation').innerHTML=
+    `<span style="color:#4ade80;font-weight:700;">后卫停下！选择突破路线！</span> <span id="atk-timer" style="color:#fbbf24;font-size:12px;"></span>`;
+  let elapsed=0;
+  _match._atkCountdown=setInterval(()=>{
+    elapsed+=100;
+    let left=Math.max(0,reactWindow-elapsed);
+    let timerEl=document.getElementById('atk-timer');
+    if(timerEl) timerEl.innerText=(left/1000).toFixed(1)+'s';
+  },100);
+  _match._atkDeadline=setTimeout(()=>{
+    clearInterval(_match._atkCountdown);
+    document.getElementById('arena-zones').style.display='none';
+    document.getElementById('arena-situation').innerHTML='⏱️ 反应太慢，机会错失！';
+    _match.failures++; _match.qteBonus-=0.08;
+    _match.scoreOpp++; document.getElementById('score-opp').innerText=_match.scoreOpp;
+    document.getElementById('arena-my-ball').style.display='none';
+    showMiss();
+    let myEl=document.getElementById('arena-my-player');
+    myEl.style.transition='left 0.3s,bottom 0.3s'; myEl.style.left='50%'; myEl.style.bottom='22%';
+    setTimeout(()=>nextRoundOrEnd(_match.currentRound), 1400);
+  }, reactWindow);
+}
+
+function playerAttackZone(zone) {
+  clearTimeout(_match._atkDeadline);
+  clearInterval(_match._atkCountdown);
+  document.getElementById('arena-zones').style.display='none';
+  let posMap={left:'18%',center:'50%',right:'82%'};
+  let isBlocked=zone===_match._oppDefZone;
+  let myEl=document.getElementById('arena-my-player');
+  myEl.style.transition='left 0.25s,bottom 0.25s';
+  myEl.style.left=posMap[zone]; myEl.style.bottom='45%';
+  // Ball stays attached to player (my-ball div), hide standalone
+  document.getElementById('arena-ball').style.display='none';
+  document.getElementById('arena-situation').innerHTML='突破中……';
+  setTimeout(()=>{
+    let opp=_match.opp;
+    let baseSr=isBlocked ? 0.28+(_match.oppOvr<=30?0.05:0) : 0.60+(_match.oppOvr<=25?0.05:0);
+    if(opp.weak) baseSr+=0.08;
+    baseSr=Math.min(0.90,baseSr);
+    attackResult(Math.random()<baseSr, zone, isBlocked);
+  },280);
+}
+
+function attackResult(success, zone, isBlocked) {
+  let posMap={left:'18%',center:'50%',right:'82%'};
+  let myEl=document.getElementById('arena-my-player');
+  let oppEl=document.getElementById('arena-opp-player');
+  let myBall=document.getElementById('arena-my-ball');
+  _match.totalDuels++;
+  if(success){
+    _match.successes++; _match.qteBonus+=0.15;
+    _match.scoreMe++; document.getElementById('score-my').innerText=_match.scoreMe;
+    if(isBlocked){ oppEl.style.transition='left 0.18s'; oppEl.style.left=posMap[zone]; }
+    myEl.style.bottom='60%'; flashGoal(true);
+    myBall.style.display='none';
+    setTimeout(()=>{ document.getElementById('arena-situation').innerHTML='⚽ <b style="color:#4ade80;font-size:16px;">突破成功！</b>'+(isBlocked?' 强行打破封堵！':' 空位杀入！'); },300);
+  } else {
+    _match.failures++; _match.qteBonus-=0.07;
+    _match.scoreOpp++; document.getElementById('score-opp').innerText=_match.scoreOpp;
+    myBall.style.display='none';
+    if(isBlocked){
+      // Collision: opp rushes to meet player
+      oppEl.style.transition='left 0.15s,top 0.15s';
+      oppEl.style.left=posMap[zone]; oppEl.style.top='38%';
+      // Both bounce back
+      setTimeout(()=>{
+        playCollision();
+        myEl.style.transition='left 0.2s,bottom 0.2s';
+        myEl.style.bottom='30%'; // knock back
+        oppEl.style.transition='top 0.2s'; oppEl.style.top='26%'; // bounce back up
+      }, 160);
+      setTimeout(()=>{ myEl.style.bottom='28%'; myEl.style.left='50%'; },500);
+    }
+    setTimeout(()=>{ document.getElementById('arena-situation').innerHTML=isBlocked?'💥 硬碰硬！被封堵弹回！':'😤 打偏了！'; if(!isBlocked) showMiss(); },350);
+  }
+  document.getElementById('arena-ball').style.display='none';
+  setTimeout(()=>{
+    oppEl.style.transition='left 0.3s,top 0.3s'; oppEl.style.left='50%'; oppEl.style.top='15%';
+    myEl.style.transition='left 0.3s,bottom 0.3s'; myEl.style.left='50%'; myEl.style.bottom='22%';
+    nextRoundOrEnd(_match.currentRound);
+  }, success?1800:1600);
+}
+
+// ── Zone style helper ──
+function setZoneStyle(mode, defZone) {
+  ['left','center','right'].forEach(z=>{
+    let btn=document.getElementById('zone-'+z); if(!btn) return;
+    if(mode==='defense'){
+      btn.style.background='rgba(34,197,94,0.15)'; btn.style.borderColor='rgba(34,197,94,0.5)';
+      btn.style.color='#22c55e'; btn.style.boxShadow='';
+      btn.innerText={left:'左路',center:'中路',right:'右路'}[z];
+      btn.onclick=function(){ playerIntercept(z); };
+    } else {
+      if(z===defZone){
+        btn.style.background='rgba(239,68,68,0.2)'; btn.style.borderColor='#ef4444';
+        btn.style.color='#fca5a5'; btn.style.boxShadow='0 0 8px rgba(239,68,68,0.4)';
+        btn.innerText={left:'🛡左',center:'🛡中',right:'🛡右'}[z];
+      } else {
+        btn.style.background='rgba(34,197,94,0.15)'; btn.style.borderColor='rgba(34,197,94,0.6)';
+        btn.style.color='#4ade80'; btn.style.boxShadow='';
+        btn.innerText={left:'左路突破',center:'中路突破',right:'右路突破'}[z];
+      }
+      btn.onclick=function(){ playerAttackZone(z); };
+    }
+  });
+}
+
+function showMiss() {
+  let el = document.getElementById('arena-phase-label');
+  el.style.transition='none'; el.innerText='MISS'; el.style.color='#f87171';
+  el.style.opacity='1'; el.style.transform='translate(-50%,-50%) scale(1.3)';
+  setTimeout(()=>{
+    el.style.transition='opacity 0.45s,transform 0.45s';
+    el.style.opacity='0'; el.style.transform='translate(-50%,-50%) scale(0.6)';
+    setTimeout(()=>{ el.style.transition=''; }, 450);
+  }, 550);
+}
+
+function playCollision() {
+  // Screen shake via pitch element
+  let pitch = document.getElementById('arena-pitch');
+  pitch.style.transition='transform 0.05s';
+  pitch.style.transform='translateX(6px)';
+  setTimeout(()=>{ pitch.style.transform='translateX(-5px)'; },60);
+  setTimeout(()=>{ pitch.style.transform='translateX(3px)'; },120);
+  setTimeout(()=>{ pitch.style.transform='translateX(0)'; },180);
+}
+
+function flashGoal(isHome) {
+  let el=document.getElementById('arena-goal-flash'), txt=document.getElementById('arena-goal-text');
+  txt.innerText=isHome?'⚽ 成功！':'😱 失败！'; txt.style.color=isHome?'#4ade80':'#f87171';
+  el.style.background=isHome?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.12)';
+  el.style.transition='opacity 0.15s'; el.style.opacity='1';
+  setTimeout(()=>{ el.style.opacity='0'; },900);
+}
+
+function nextRoundOrEnd(n) {
+  if(n<_match.totalRounds) startRound(n+1);
+  else endArena();
+}
+
+function endArena() {
+  let s=_match.successes, f=_match.failures;
+  let won=s>f, draw=s===f;
+  document.getElementById('arena-situation').innerHTML=
+    `<b style="font-size:15px;">${won?'🏆 对抗优势！':draw?'🤝 势均力敌':'💔 对抗落败'}</b>
+     <br><span style="color:#94a3b8;font-size:12px;">成功 ${s} 次 / 失败 ${f} 次</span>`;
+  setTimeout(()=>{
+    document.getElementById('modal-match-arena').classList.add('hidden');
+    if(_match.isScrimmage) resolveScrim(s,f,won,draw);
+    else resolveLeague(s,f,won,draw);
+  }, 1400);
+}
+
+// =============================================================================
+// RESULT RESOLUTION
+// =============================================================================
+function resolveScrim(s,f,won,draw) {
+  let grade = won ? 'S' : draw ? 'A' : 'C';
+  GAME.scrimmageResult = grade;
+
+  let msg = grade==='S' ? '对抗出色！联赛战力+8%'
+          : grade==='A' ? '表现正常，正常上场'
+          : '发挥不佳，联赛战力-10%';
+  let color = grade==='S'?'var(--gold)':grade==='A'?'var(--primary)':'var(--danger)';
+
+  // Show quick result then start league
+  document.getElementById('modal-result').classList.remove('hidden');
+  document.getElementById('res-grade').innerHTML=`<span style="color:${color}">对抗赛 ${grade}级</span>`;
+  document.getElementById('res-stars').innerText='';
+  document.getElementById('res-detail').innerHTML=`成功 ${s} 次 / 失败 ${f} 次<br><b style="color:${color}">${msg}</b>`;
+  let btn=document.getElementById('res-continue-btn');
+  btn.innerText='⚽ 上场联赛！';
+  btn.onclick=()=>{
+    document.getElementById('modal-result').classList.add('hidden');
+    startLeagueArena();
+  };
+}
+
+function resolveLeague(s,f,won,draw) {
+  let t = GAME.phase1Teams.find(x=>x.id===GAME.currentTeamId);
+  let idx = GAME.phase1Teams.indexOf(t);
+
+  // Determine stars
+  // Winning by margin: s-f >= totalRounds/2 = big win (3 stars)
+  let stars;
+  let margin = s - f;
+  if(won && margin >= Math.ceil(_match.totalRounds/3)) stars=3;
+  else if(won) stars=2;
+  else if(draw) stars=1;
+  else stars=0;
+
+  // Update best stars
+  let oldStars = t.stars;
+  if(stars > t.stars) t.stars = stars;
+
+  // Unlock next team if 3 stars
+  if(stars===3 && idx+1 < GAME.phase1Teams.length) {
+    GAME.phase1Teams[idx+1].unlocked = true;
+  }
+
+  saveGame();
+
+  // Build result display
+  let gradeLabel = stars===3?'🏆 大胜！':stars===2?'⚔️ 胜利':stars===1?'🤝 平局':'💔 失败';
+  let gradeColor = stars>=3?'var(--gold)':stars===2?'var(--green)':stars===1?'var(--primary)':'var(--danger)';
+  let starsDisplay='';
+  for(let i=0;i<3;i++) starsDisplay += i<stars?'⭐':'☆';
+
+  let unlockNote='';
+  if(stars===3 && idx+1<GAME.phase1Teams.length && oldStars<3) {
+    let next=GAME.phase1Teams[idx+1];
+    unlockNote=`<div style="margin-top:10px;color:var(--primary);font-size:13px;">🔓 解锁：${next.badge} ${next.name}</div>`;
+  } else if(stars<3) {
+    unlockNote=`<div style="margin-top:10px;color:var(--text2);font-size:12px;">💡 需要3星（大胜）才能解锁下一关</div>`;
+  } else if(stars===3 && idx+1>=GAME.phase1Teams.length) {
+    unlockNote=`<div style="margin-top:10px;color:var(--gold);font-size:13px;">🎉 第一阶段全部通过！</div>`;
+  }
+
+  let scrimNote = GAME.scrimmageResult==='S'?'<br><span style="font-size:11px;color:var(--gold)">⭐ 对抗S级加成</span>'
+                : GAME.scrimmageResult==='C'?'<br><span style="font-size:11px;color:var(--danger)">⚠️ 对抗C级减成</span>':'';
+
+  document.getElementById('modal-result').classList.remove('hidden');
+  document.getElementById('res-grade').innerHTML=`<span style="color:${gradeColor}">${gradeLabel}</span>`;
+  document.getElementById('res-stars').innerText=starsDisplay;
+  document.getElementById('res-detail').innerHTML=
+    `vs ${t.name}<br>对抗 ${s}成功 / ${f}失败${scrimNote}${unlockNote}`;
+
+  let btn=document.getElementById('res-continue-btn');
+  if(stars===3 && idx+1<GAME.phase1Teams.length && oldStars<3){
+    btn.innerText='➡️ 挑战下一关';
+    btn.onclick=()=>{
+      document.getElementById('modal-result').classList.add('hidden');
+      openPrematch(GAME.phase1Teams[idx+1].id);
+    };
+  } else {
+    btn.innerText='🔄 再次挑战';
+    btn.onclick=()=>{
+      document.getElementById('modal-result').classList.add('hidden');
+      openPrematch(t.id);
+    };
+  }
+}
+
+// =============================================================================
+// BOOT
+// =============================================================================
+(function(){
+  try {
+    loadSave();
+    // Always start at intro for fresh UX
+    // If they have save data, map will show their progress
+  } catch(e) {
+    GAME = getDefaultGame();
+  }
+})();
+</script>
+</body>
+</html>
